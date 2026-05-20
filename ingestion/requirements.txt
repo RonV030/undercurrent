@@ -1,0 +1,6 @@
+pytrends>=4.9.0,<5.0.0
+boto3>=1.34.0,<2.0.0
+pandas>=2.1.1,<3.0.0
+# pytrends 4.9.x uses urllib3 1.x API (method_whitelist) which was removed in urllib3 2.0.
+# boto3 supports both, so pinning <2.0 is safe.
+urllib3<2.0
