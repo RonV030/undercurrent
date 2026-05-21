@@ -86,6 +86,56 @@ Roles also issue temporary credentials that expire automatically after one hour.
 
 ---
 
+## Transformation database: DuckDB for Phase 1 rather than Redshift Serverless
+
+**What I chose:** Use DuckDB as the local analytical database that dbt transforms against during Phase 1.
+
+**Alternative:** Provision Redshift Serverless on AWS, which is the production target in the full stack.
+
+**Why:** Redshift Serverless requires Terraform provisioning, VPC configuration, IAM permissions, and a running AWS service — significant infrastructure overhead before a single transformation can run. DuckDB is a single file on disk with no server, no configuration, and no cost. The SQL I write for DuckDB is nearly identical to Redshift SQL, so migrating later is a matter of changing the dbt connection profile, not rewriting any models. Starting with DuckDB lets me validate the full pipeline end to end without paying for infrastructure that is not yet justified.
+
+---
+
+## DuckDB storage: file mode rather than in-memory
+
+**What I chose:** Connect DuckDB to a named file (`undercurrent.duckdb`) that persists between runs.
+
+**Alternative:** Use in-memory mode (`duckdb.connect()` with no path), where the database disappears when the process exits.
+
+**Why:** In-memory mode would require re-loading data from S3 every time dbt runs. File mode separates the load step from the transform step: I run the loader once when new data arrives and dbt reads from the persistent file. This maps more closely to how a real warehouse works and avoids unnecessary S3 API calls.
+
+---
+
+## dbt mart format: long (unpivoted) rather than wide
+
+**What I chose:** The mart model unpivots the five keyword columns into two columns — `keyword` and `interest_score` — producing one row per keyword per week.
+
+**Alternative:** Keep the wide format from the staging model, with one column per keyword.
+
+**Why:** Long format makes downstream work simpler. A Streamlit chart can filter by `keyword` in a single `WHERE` clause rather than selecting different columns by name. A future Grafana dashboard or SQL query does not need to know the keyword list in advance. Long format is also the standard representation for time series data with multiple dimensions.
+
+---
+
+## dbt staging materialisation: view; mart materialisation: table
+
+**What I chose:** Staging models are materialised as views, mart models as tables.
+
+**Alternative:** Materialise everything as tables, or everything as views.
+
+**Why:** Staging views store no data — they are saved SQL queries that run fresh against the raw table every time they are referenced. Since the staging model is just a thin cleaning layer, there is no performance benefit to caching it. The mart model is materialised as a table because Streamlit queries it directly; a pre-computed table responds instantly rather than re-running the transformation on every page load.
+
+---
+
+## dbt profiles.yml: stored outside the repository
+
+**What I chose:** Keep `profiles.yml` at `~/.dbt/profiles.yml`, outside the project directory.
+
+**Alternative:** Store it inside the `dbt/` folder and gitignore it.
+
+**Why:** `profiles.yml` contains the local path to the DuckDB file, which includes my username and file system layout. Keeping it outside the repository makes it structurally impossible to accidentally commit, even if the gitignore were misconfigured. This mirrors how AWS credentials are handled — personal connection config belongs in the home directory, not the project.
+
+---
+
 ## Terraform AWS provider version constraint: `~> 5.0`
 
 **What I chose:** Pin the AWS provider to any 5.x release using the `~> 5.0` constraint.
