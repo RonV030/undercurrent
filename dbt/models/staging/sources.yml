@@ -1,0 +1,37 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Raw data loaded from S3 before any transformation."
+    tables:
+      - name: google_trends
+        description: "Weekly Google Trends search interest for German mental health keywords."
+        columns:
+          - name: date
+            description: "Start date of the week (weekly granularity for a 12-month window)."
+            tests:
+              - not_null
+              - unique
+          - name: depression
+            description: "Relative search interest 0-100 for 'depression' in Germany."
+            tests:
+              - not_null
+          - name: angst
+            description: "Relative search interest 0-100 for 'angst' in Germany."
+            tests:
+              - not_null
+          - name: burnout
+            description: "Relative search interest 0-100 for 'burnout' in Germany."
+            tests:
+              - not_null
+          - name: therapie
+            description: "Relative search interest 0-100 for 'therapie' in Germany."
+            tests:
+              - not_null
+          - name: psychologe
+            description: "Relative search interest 0-100 for 'psychologe' in Germany."
+            tests:
+              - not_null
+          - name: isPartial
+            description: "True if the week was not yet complete when the data was fetched."

@@ -1,0 +1,17 @@
+name: undercurrent
+version: '1.0.0'
+config-version: 2
+
+profile: undercurrent
+
+model-paths: ["models"]
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  undercurrent:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

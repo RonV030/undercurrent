@@ -9,3 +9,7 @@ node_modules/
 .DS_Store
 CLAUDE.md
 memory/
+*.duckdb
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
