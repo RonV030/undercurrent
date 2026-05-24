@@ -136,6 +136,48 @@ Roles also issue temporary credentials that expire automatically after one hour.
 
 ---
 
+## Ingestion automation: GitHub Actions with manual trigger and weekly schedule
+
+**What I chose:** Run the Google Trends ingestor through a GitHub Actions workflow that exposes both a manual trigger (`workflow_dispatch`) and a recurring schedule (`cron: '0 6 * * 1'`, every Monday at 06:00 UTC).
+
+**Alternative:** A single trigger type only, an EC2 cron job, or a Lambda function scheduled by EventBridge.
+
+**Why:** GitHub Actions runs on hosted runners at no cost for public repositories and within a generous free monthly allowance for private ones. Adding both triggers in the same workflow file requires no extra infrastructure and covers two distinct needs: the schedule keeps the dataset current without manual intervention, while the manual trigger allows me to re-run after fixing a bug or to backfill a missed week. Monday morning UTC aligns with Google Trends' weekly aggregation — by then, the previous week's data is finalised.
+
+EC2 cron would require maintaining a virtual machine for a job that runs for a few seconds a week. Lambda would require packaging the ingestor as a deployment artifact. Both add infrastructure complexity that is not justified at this stage.
+
+---
+
+## Ingestion trigger surface: backend automation only, not end-user facing
+
+**What I chose:** Data refresh is invoked exclusively from GitHub Actions. The Streamlit dashboard does not expose a refresh button.
+
+**Alternative:** Add a "Refresh data" button to the dashboard that calls the ingestor.
+
+**Why:** Exposing ingestion control from a public dashboard mixes the read layer and the write layer. Any visitor would be able to consume Google Trends quota and trigger AWS API calls, with no rate limiting or authentication in front of it. Keeping the trigger surface in CI maintains a clean separation between presentation and orchestration. Phase 2 introduces Airflow, which is the appropriate place for any human-initiated runs and can sit behind authentication.
+
+---
+
+## Credential delivery to GitHub Actions: long-lived access keys via GitHub Secrets (Phase 1)
+
+**What I chose:** Store the Terraform user's AWS access key and secret as GitHub Secrets, which the workflow injects as environment variables for boto3 to pick up. The workflow then calls `sts:AssumeRole` to receive temporary credentials scoped to the ingestor role.
+
+**Alternative:** Configure OpenID Connect (OIDC) federation between GitHub and AWS so the runner exchanges a GitHub-signed token for short-lived AWS credentials with no long-lived keys stored anywhere.
+
+**Why:** OIDC is the recommended production pattern and removes the need to rotate static access keys, but it requires provisioning an IAM OIDC identity provider in AWS, a separate IAM role with a trust policy that pins the GitHub repository, and modified workflow configuration. For Phase 1, the existing keys are reused and GitHub Secrets keeps them encrypted at rest and out of logs. The AssumeRole step still narrows the runtime permissions to the same ingestor role used locally, so the blast radius is identical even if the static keys are leaked. OIDC is the right Phase 2 follow-up once the rest of the pipeline is hardened.
+
+---
+
+## Python dependency pinning: lower bound plus next-major upper bound
+
+**What I chose:** Pin every Python dependency to a minimum tested version and exclude the next major release, e.g. `pandas>=2.1.1,<3.0.0`.
+
+**Alternative:** No pin (`pandas`), an exact pin (`pandas==2.1.1`), or a lower bound only (`pandas>=2.1.1`).
+
+**Why:** No pin means any fresh install can pull a new major version with breaking changes — exactly the failure mode that caused the `urllib3` 2.x / pytrends incompatibility encountered during Phase 1. An exact pin requires manual updates for every patch and security fix. The bounded range allows patch and minor updates (which by semantic versioning convention are backwards compatible) while structurally blocking accidental major upgrades on the next `pip install`.
+
+---
+
 ## Terraform AWS provider version constraint: `~> 5.0`
 
 **What I chose:** Pin the AWS provider to any 5.x release using the `~> 5.0` constraint.

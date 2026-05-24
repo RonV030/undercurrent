@@ -11,6 +11,26 @@ DUCKDB_PATH = os.environ.get("DUCKDB_PATH", "undercurrent.duckdb")
 
 
 @st.cache_data
+def load_last_updated() -> str:
+    """Return the most recent week_start date in the mart table as a formatted string.
+
+    Used to show the user when the data was last refreshed without exposing
+    the raw date object to the rendering layer.
+
+    Returns:
+        Date string formatted as DD/MM/YYYY, e.g. '20/05/2026'.
+    """
+    conn = duckdb.connect(DUCKDB_PATH, read_only=True)
+    result = conn.execute(
+        "SELECT MAX(week_start) FROM main.mart_mental_health_trends"
+    ).fetchone()
+    conn.close()
+    if result and result[0]:
+        return result[0].strftime("%d/%m/%Y")
+    return "unknown"
+
+
+@st.cache_data
 def load_trends() -> pd.DataFrame:
     """Query the mart table from DuckDB and return a DataFrame.
 
@@ -120,7 +140,7 @@ def main() -> None:
     with centre:
         fig_corr = px.imshow(
             corr,
-            text_auto=".2f",
+            text_auto=".2f",  # type: ignore[arg-type]
             color_continuous_scale="RdBu",
             zmin=-1,
             zmax=1,
