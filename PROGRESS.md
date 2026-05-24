@@ -52,8 +52,33 @@ Second working session. Added the IAM ingestor role and built the full Google Tr
 * 53 rows of weekly data, columns: `date, depression, angst, burnout, therapie, psychologe, isPartial`
 * Values are relative search interest scaled 0 to 100, not absolute counts
 
+---
+
+## 21/05/2026
+
+### What I did
+Third working session. Built the transformation layer with dbt and DuckDB.
+
+**DuckDB loader (`/ingestion`):**
+* `load_to_duckdb.py` — downloads all Google Trends CSVs from S3 using the ingestor role, concatenates them into a single DataFrame, and writes them to DuckDB as `raw.google_trends`
+
+**dbt project (`/dbt`):**
+* `dbt_project.yml` — project config; staging models materialised as views, mart models as tables
+* `profiles.yml` — connection config stored at `~/.dbt/profiles.yml` (outside the repo); points dbt at the local DuckDB file
+* `models/staging/sources.yml` — declares `raw.google_trends` as a dbt source with 7 data quality tests
+* `models/staging/stg_google_trends.sql` — casts all columns to correct types, renames `isPartial` to `is_partial`
+* `models/marts/mart_mental_health_trends.sql` — unpivots wide keyword columns into long format (`week_start`, `keyword`, `interest_score`); filters out partial weeks
+
+**Results:**
+* `dbt run` — built 2 models (1 view, 1 table) in 0.35s
+* `dbt test` — 7/7 data quality tests passed
+* Mart table confirmed in DuckDB with correct long-format output
+
+**Security:**
+* Added `dbt/logs/` to `.gitignore` — logs expose local file paths and username
+
 ### What is next (Phase 1 remaining)
 * [x] Google Trends ingestion script (`/ingestion`)
+* [x] dbt model (`/dbt`)
+* [ ] Streamlit chart (`/app`) — reads from DuckDB mart and displays a trend line chart
 * [ ] GitHub Actions workflow — runs the ingestor on push
-* [ ] dbt model (`/dbt`) — transforms raw S3 data (staging to mart)
-* [ ] Streamlit chart (`/app`) — reads from dbt output and displays a trend chart
