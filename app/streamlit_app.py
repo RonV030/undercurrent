@@ -83,6 +83,7 @@ def main() -> None:
         "Weekly Google Trends search interest (0-100, relative scale) "
         "for German mental health keywords. Source: Google Trends via pytrends."
     )
+    st.caption(f"Data last updated: {load_last_updated()}")
 
     df = load_trends()
 

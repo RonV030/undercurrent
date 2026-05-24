@@ -136,6 +136,18 @@ Roles also issue temporary credentials that expire automatically after one hour.
 
 ---
 
+## DuckDB load step: single latest snapshot rather than concatenation of all S3 CSVs
+
+**What I chose:** The DuckDB loader downloads only the most recent CSV from S3 (resolved by lexicographic max on the `YYYY-MM-DD.csv` filenames) and writes it to `raw.google_trends`, overwriting any prior contents.
+
+**Alternative:** Concatenate every CSV in the bucket and deduplicate overlapping weeks.
+
+**Why:** Each Google Trends CSV is a self-contained 12-month rolling snapshot, where ~51 of the 52 weeks overlap with the previous run. Concatenating snapshots produces duplicate rows for the same `week_start` date, which would fail the dbt source `unique` test on `date`. More fundamentally, Google Trends rescales its 0 to 100 interest score relative to the peak week in the queried range, so the same week can have different scores across snapshots — naive concatenation would mix incompatible scales and present misleading values in the dashboard.
+
+Loading only the latest snapshot keeps the scale internally consistent within each refresh, matches the rolling-window intent of the ingestor, and preserves older CSVs in S3 as an immutable audit trail without polluting the analytical table.
+
+---
+
 ## Ingestion automation: GitHub Actions with manual trigger and weekly schedule
 
 **What I chose:** Run the Google Trends ingestor through a GitHub Actions workflow that exposes both a manual trigger (`workflow_dispatch`) and a recurring schedule (`cron: '0 6 * * 1'`, every Monday at 06:00 UTC).

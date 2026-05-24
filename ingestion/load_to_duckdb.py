@@ -81,13 +81,20 @@ def main() -> None:
     keys = list_csvs(s3, bucket, DEFAULT_PREFIX)
     print(f"Found {len(keys)} file(s).")
 
-    frames = [download_csv(s3, bucket, key) for key in keys]
-    combined = pd.concat(frames, ignore_index=True)
-    print(f"Combined {len(combined)} total rows.")
+    if not keys:
+        raise RuntimeError(f"No CSVs found in s3://{bucket}/{DEFAULT_PREFIX}")
 
-    print(f"Loading into raw.google_trends in {db_path}...")
+    # Each CSV is a self-contained 12-month snapshot; only the latest is loaded.
+    # Filenames are YYYY-MM-DD.csv, so lexicographic max equals chronological latest.
+    latest_key = max(keys)
+    print(f"Latest snapshot: {latest_key}")
+
+    df = download_csv(s3, bucket, latest_key)
+    print(f"Loaded {len(df)} rows.")
+
+    print(f"Writing to raw.google_trends in {db_path}...")
     conn = duckdb.connect(db_path)
-    load_to_duckdb(conn, combined)
+    load_to_duckdb(conn, df)
     conn.close()
     print("Done.")
 
