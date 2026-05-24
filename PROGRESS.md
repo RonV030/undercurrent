@@ -82,27 +82,48 @@ Third working session. Built the transformation layer with dbt and DuckDB.
 ## 24/05/2026
 
 ### What I did
-Fourth working session. Built the Streamlit dashboard — completing the Phase 1 vertical slice.
+Fourth working session. Completed the Phase 1 vertical slice — Streamlit dashboard, weekly ingestion automation via GitHub Actions, and a data freshness label tying the two together.
 
 **Streamlit app (`/app`):**
 * `requirements.txt` — declares streamlit, plotly, and duckdb as app dependencies
-* `streamlit_app.py` — two sections:
+* `streamlit_app.py` — three sections:
   * Line chart: connects to DuckDB in read-only mode, queries `main.mart_mental_health_trends` (long format), renders an interactive Plotly line chart with a keyword multiselect filter; uses `@st.cache_data` to avoid re-querying on every interaction
   * Correlation heatmap: queries `main.stg_google_trends` (wide format) directly to avoid a pivot step, computes Pearson r via pandas `.corr()`, renders a `px.imshow` heatmap with values annotated on each cell
+  * Data freshness caption: `load_last_updated()` queries `MAX(week_start)` from the mart and renders "Data last updated: DD/MM/YYYY" under the title; advances each Monday once the new week becomes non-partial
+
+**GitHub Actions (`.github/workflows/ingest.yml`):**
+* New workflow with two triggers: `workflow_dispatch` (manual button in the Actions tab) and `schedule: '0 6 * * 1'` (every Monday at 06:00 UTC, after the previous week closes)
+* Runs on `ubuntu-latest`, sets up Python 3.12 with pip caching, configures AWS credentials via `aws-actions/configure-aws-credentials@v4`, installs `ingestion/requirements.txt`, and executes `python -m ingestion.google_trends.main`
+* Credentials sourced from GitHub Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `INGESTOR_ROLE_ARN`
+* Verified by triggering manually; new CSV `google_trends/2026-05-24.csv` appeared in the raw bucket
 
 **Findings from the data:**
 * `depression` and `burnout` correlate at r = 0.84 — they move almost in lockstep
 * `angst` is weakly correlated with everything (r = 0.09 to 0.37) — follows a different seasonal pattern
 * No negative correlations — expected, all keywords are related to mental health
 
+**Bugs hit and fixed:**
+* DuckDB loader concatenated every CSV in S3, but the 12-month rolling snapshots overlap by ~51 weeks. Two snapshots in the bucket would have produced duplicate rows and broken the dbt `unique on date` test. Fixed by loading only the latest CSV via `max(keys)` (lexicographic on `YYYY-MM-DD.csv` filenames)
+* `duckdb` was missing from `ingestion/requirements.txt`; the loader worked locally only because the app venv had it. Added it explicitly so a clean checkout or the GitHub runner will not break
+* Plotly type stubs flag `text_auto=".2f"` as invalid even though the runtime accepts it; suppressed with `# type: ignore[arg-type]`
+
 **Verified:**
-* Both charts rendered correctly in the browser
+* All three Streamlit sections render correctly in the browser
 * Multiselect filter on the line chart works
 * Heatmap symmetric with 1.00 on the diagonal
+* Manual GitHub Actions run uploaded today's CSV successfully
+* "Data last updated: 17/05/2026" caption confirmed (latest complete week; today's partial week correctly filtered out)
+
+**Decisions documented in `DECISIONS.md`:**
+* Loader takes only the latest snapshot (Google Trends values are relative, not absolute, so naive concatenation would mix scales)
+* GitHub Actions trigger combination: manual plus weekly cron
+* Ingestion trigger surface stays in CI, not exposed via the dashboard
+* Long-lived access keys via GitHub Secrets for Phase 1, with OIDC noted as the Phase 2 follow-up
+* Python dependency pinning convention (`>=X.Y.Z,<next-major`)
 
 ### What is next (Phase 1 remaining)
 * [x] Google Trends ingestion script (`/ingestion`)
 * [x] dbt model (`/dbt`)
 * [x] Streamlit chart (`/app`)
-* [ ] GitHub Actions workflow — runs the ingestor on push
+* [x] GitHub Actions workflow — manual trigger plus weekly schedule
 * [ ] README — written once Phase 1 is fully complete
