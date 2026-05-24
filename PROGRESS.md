@@ -77,8 +77,32 @@ Third working session. Built the transformation layer with dbt and DuckDB.
 **Security:**
 * Added `dbt/logs/` to `.gitignore` — logs expose local file paths and username
 
+---
+
+## 24/05/2026
+
+### What I did
+Fourth working session. Built the Streamlit dashboard — completing the Phase 1 vertical slice.
+
+**Streamlit app (`/app`):**
+* `requirements.txt` — declares streamlit, plotly, and duckdb as app dependencies
+* `streamlit_app.py` — two sections:
+  * Line chart: connects to DuckDB in read-only mode, queries `main.mart_mental_health_trends` (long format), renders an interactive Plotly line chart with a keyword multiselect filter; uses `@st.cache_data` to avoid re-querying on every interaction
+  * Correlation heatmap: queries `main.stg_google_trends` (wide format) directly to avoid a pivot step, computes Pearson r via pandas `.corr()`, renders a `px.imshow` heatmap with values annotated on each cell
+
+**Findings from the data:**
+* `depression` and `burnout` correlate at r = 0.84 — they move almost in lockstep
+* `angst` is weakly correlated with everything (r = 0.09 to 0.37) — follows a different seasonal pattern
+* No negative correlations — expected, all keywords are related to mental health
+
+**Verified:**
+* Both charts rendered correctly in the browser
+* Multiselect filter on the line chart works
+* Heatmap symmetric with 1.00 on the diagonal
+
 ### What is next (Phase 1 remaining)
 * [x] Google Trends ingestion script (`/ingestion`)
 * [x] dbt model (`/dbt`)
-* [ ] Streamlit chart (`/app`) — reads from DuckDB mart and displays a trend line chart
+* [x] Streamlit chart (`/app`)
 * [ ] GitHub Actions workflow — runs the ingestor on push
+* [ ] README — written once Phase 1 is fully complete
