@@ -93,8 +93,7 @@ AWS access follows least-privilege principles. The ingestor runs under a dedicat
 ## Roadmap
 
 - Additional data sources: Reddit community sentiment, RKI open health data, Spotify listening patterns
-- Production data warehouse: Redshift Serverless replacing the local DuckDB file
-- Orchestration: Apache Airflow managing the full pipeline
-- AI layer: LangGraph agent for natural language querying grounded in the data
-- Backend API: FastAPI exposing the mart data programmatically
-- Public deployment: Streamlit Community Cloud
+- Orchestration: Apache Airflow (Docker) managing the full multi-source pipeline, deployed on EC2
+- AI layer: LangGraph agent for natural language querying grounded in the data, with pgvector on RDS Postgres
+- Backend API: FastAPI exposing the mart data programmatically, hosted on EC2
+- Public deployment: Streamlit Community Cloud (in progress)

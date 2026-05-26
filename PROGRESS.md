@@ -141,8 +141,9 @@ Fifth working session. Completed Phase 1 by writing the README and kicked off Ph
 * Angst negatively correlates with psychologe only (r = -0.02), reinforcing that it tracks a different signal
 * Screenshots saved to `app/assets/` in dark mode
 
-### Phase 2 goals
-* Provision Redshift Serverless via Terraform to replace local DuckDB
-* Containerise Apache Airflow with Docker to orchestrate the full pipeline end-to-end
-* Migrate dbt from dbt-duckdb to dbt-redshift
+### Phase 2 goals (revised after stack audit)
+* Keep DuckDB as the query engine; load latest S3 snapshot into memory at Streamlit startup — removes Redshift Serverless from the stack entirely
+* Containerise Apache Airflow with Docker to orchestrate multi-source ingestion
 * Deploy Streamlit to Streamlit Community Cloud
+* Use RDS Postgres for the pgvector store (AI layer)
+* Kinesis removed from plan — not needed for a weekly-refresh pipeline
