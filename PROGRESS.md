@@ -126,4 +126,23 @@ Fourth working session. Completed the Phase 1 vertical slice — Streamlit dashb
 * [x] dbt model (`/dbt`)
 * [x] Streamlit chart (`/app`)
 * [x] GitHub Actions workflow — manual trigger plus weekly schedule
-* [ ] README — written once Phase 1 is fully complete
+* [x] README — written once Phase 1 is fully complete
+
+---
+
+## 26/05/2026
+
+### What I did
+Fifth working session. Completed Phase 1 by writing the README and kicked off Phase 2.
+
+**README (`README.md`):**
+* Story-first structure: problem statement, who benefits, Mermaid architecture diagram with brand colours, Streamlit screenshots, key findings, limitations, and roadmap
+* Correlation values reflect the latest 12-month rolling snapshot: depression/burnout r = 0.77 (was 0.84 when first observed), angst ranging from r = -0.02 to 0.41
+* Angst negatively correlates with psychologe only (r = -0.02), reinforcing that it tracks a different signal
+* Screenshots saved to `app/assets/` in dark mode
+
+### Phase 2 goals
+* Provision Redshift Serverless via Terraform to replace local DuckDB
+* Containerise Apache Airflow with Docker to orchestrate the full pipeline end-to-end
+* Migrate dbt from dbt-duckdb to dbt-redshift
+* Deploy Streamlit to Streamlit Community Cloud
