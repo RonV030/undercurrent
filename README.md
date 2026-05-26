@@ -43,6 +43,13 @@ flowchart LR
     S3 -->|boto3| DDB["DuckDB"]
     DDB -->|dbt| MART["Mart Table"]
     MART -->|read-only| ST["Streamlit"]
+
+    style GH fill:#2088FF,color:#fff,stroke:none
+    style GT fill:#4285F4,color:#fff,stroke:none
+    style S3 fill:#FF9900,color:#fff,stroke:none
+    style DDB fill:#E8B84B,color:#fff,stroke:none
+    style MART fill:#FF694B,color:#fff,stroke:none
+    style ST fill:#FF4B4B,color:#fff,stroke:none
 ```
 
 Each Monday at 06:00 UTC, GitHub Actions runs the ingestion pipeline. The script fetches weekly search interest from Google Trends via pytrends and uploads a dated CSV to a versioned, encrypted S3 bucket. A loader script pulls the latest snapshot into a local DuckDB file, and dbt transforms the raw data into a clean mart table that Streamlit queries directly.
@@ -65,9 +72,9 @@ AWS access follows least-privilege principles. The ingestor runs under a dedicat
 
 ## Key Findings
 
-- **Depression and burnout move in lockstep.** With a Pearson correlation of r = 0.84, the two keywords track each other closely across every week in the dataset.
-- **Angst follows a completely different pattern.** It is weakly correlated with all other keywords (r = 0.09 to 0.37), suggesting it is driven by distinct seasonal or news-cycle effects rather than general mental health burden.
-- **All five keywords are positively correlated.** No inverse relationships exist in the dataset, which is expected for terms that all relate to mental health.
+- **Depression and burnout move in lockstep.** With a Pearson correlation of r = 0.77, the two keywords track each other closely across every week in the dataset.
+- **Angst follows a completely different pattern.** It is weakly correlated with all other keywords (r = -0.02 to 0.41), suggesting it is driven by distinct seasonal or news-cycle effects rather than general mental health burden.
+- **Most keywords are positively correlated.** The one exception is angst and psychologe (r = -0.02), suggesting that searches for psychological help do not rise when general anxiety spikes, and vice versa.
 - **Search interest is relative, not absolute.** Google scales each keyword so its peak week equals 100. A value of 50 means half as many searches as the peak, not 50 searches.
 
 ---
